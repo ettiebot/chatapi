@@ -17,13 +17,6 @@ export default async function registerOpenAPI(this: HTTPClient) {
       schemes: process.env.NODE_ENV !== 'production' ? ['http'] : ['https'],
       consumes: ['application/json'],
       produces: ['application/json'],
-      securityDefinitions: {
-        apiKey: {
-          type: 'apiKey',
-          name: 'x-token',
-          in: 'header',
-        },
-      },
     },
   });
   await this.router.register(fastifySwagger, {

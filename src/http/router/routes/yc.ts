@@ -56,6 +56,13 @@ export async function ycReq(this: HTTPClient) {
           },
         },
       },
+      headers: {
+        type: 'object',
+        required: ['x-token'],
+        properties: {
+          'x-token': { type: 'string', description: 'API key' },
+        },
+      },
       // response: {
       //   200: {}
       // }

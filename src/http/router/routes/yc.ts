@@ -54,6 +54,12 @@ export async function ycReq(this: HTTPClient) {
               'Generate result text from apps (like Wikipedia or Weather)?',
             default: true,
           },
+          getParam: {
+            type: 'string',
+            description:
+              'The response parameter to be returned. After a successful parameter is received, the connection is closed and no new data will come in.',
+            default: null,
+          },
         },
       },
       headers: {

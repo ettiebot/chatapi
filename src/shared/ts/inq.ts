@@ -8,6 +8,7 @@ export const youChatReqPayload = z.object({
   searchResCount: z.number().min(0).max(5).default(3),
   safeSearch: z.boolean().default(false),
   parseApps: z.boolean().default(true),
+  getParam: z.string().optional(),
 });
 
 export type YouChatReqPayload = z.infer<typeof youChatReqPayload>;

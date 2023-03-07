@@ -22,15 +22,21 @@ export default class Inquirer {
     payload.text = beautifyRequestText(payload.text);
 
     // Retreive response from YouChat
-    const result = await this.ycClient.getEventSource(getYCApiUrl(payload));
+    const result =
+      payload.getParam && payload.getParam !== ''
+        ? await this.ycClient.getEventSourceParam(
+            getYCApiUrl(payload),
+            payload.getParam,
+          )
+        : await this.ycClient.getEventSource(getYCApiUrl(payload));
 
     // Parse apps if needed
-    if (payload.parseApps === true) {
+    if (!payload.getParam && payload.parseApps === true) {
       const apps = await parseApps(result);
       if (apps) Object.assign(result, apps);
-    } else {
-      result.text = beautifyResponseText(result.text);
     }
+
+    if (result.text) result.text = beautifyResponseText(result.text);
 
     return result;
   }

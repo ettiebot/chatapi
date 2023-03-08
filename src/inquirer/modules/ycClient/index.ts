@@ -8,8 +8,12 @@ import timer from 'timers/promises';
 import z from 'zod';
 import { Config } from '../../../config.js';
 import eventListener from './eventListener.js';
-import type { YouChatResponse } from '../../../shared/ts/youchat.js';
-import eventListenerParam from './eventListenerParam.js';
+import type {
+  ThirdPartySearchResult,
+  YouChatResponse,
+} from '../../../shared/ts/youchat.js';
+import eventListenerAppData from './eventListenerAppData.js';
+import fetchSearchResults from './fetchSearchResults.js';
 
 const pptr = new PuppeteerExtra(puppeteer);
 pptr.use(StealthPlugin());
@@ -161,36 +165,51 @@ export default class YCClient {
     );
   }
 
-  public async getEventSourceParam(
+  public async getAppData(
     url: string,
-    param: string,
-    asStream = false,
-    onData?: (d) => void,
-  ): Promise<Partial<YouChatResponse>> {
-    const response: Partial<YouChatResponse> = {};
+    appName: string,
+  ): Promise<YouChatResponse['data']> {
     return await new Promise(
       (
-        resolve: (d: Partial<YouChatResponse>) => void,
+        resolve: (d: YouChatResponse['data']) => void,
         reject: (e: string) => void,
       ) => {
         const resolver = (e): void => {
-          if (asStream) {
-            onData(e);
-          }
           if (e.done === true) {
-            response.text = e.text.trim();
-            resolve(response);
+            resolve(e.data);
             this.reqs.delete(url);
           } else if (e.done === false) {
             reject(e.error);
             this.reqs.delete(url);
-          } else if (!e.youChatToken) {
-            Object.assign(response, e);
           }
         };
 
         this.reqs.set(url, resolver);
-        this.page.evaluate(eventListenerParam, { url, param });
+        this.page.evaluate(eventListenerAppData, { url, appName });
+      },
+    );
+  }
+
+  public async getSearchResults(
+    url: string,
+  ): Promise<ThirdPartySearchResult[]> {
+    return await new Promise(
+      (
+        resolve: (d: ThirdPartySearchResult[]) => void,
+        reject: (e: string) => void,
+      ) => {
+        const resolver = (e): void => {
+          if (e.done === true) {
+            resolve(e.data);
+            this.reqs.delete(url);
+          } else if (e.done === false) {
+            reject(e.error);
+            this.reqs.delete(url);
+          }
+        };
+
+        this.reqs.set(url, resolver);
+        this.page.evaluate(fetchSearchResults, { url });
       },
     );
   }

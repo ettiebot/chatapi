@@ -1,5 +1,9 @@
 import type { HTTPClient } from '../../index.js';
-import { YouChatReqPayload } from '../../../shared/ts/inq.js';
+import {
+  YouChatGetAppDataPayload,
+  YouChatGetSearchResultsPayload,
+  YouChatReqPayload,
+} from '../../../shared/ts/inq.js';
 import verifyToken from '../../modules/auth.js';
 import { User } from '../../../shared/ts/mongo.js';
 import PQueue from 'p-queue';
@@ -54,11 +58,51 @@ export async function ycReq(this: HTTPClient) {
               'Generate result text from apps (like Wikipedia or Weather)?',
             default: true,
           },
-          getParam: {
+        },
+      },
+      headers: {
+        type: 'object',
+        required: ['x-token'],
+        properties: {
+          'x-token': { type: 'string', description: 'API key' },
+        },
+      },
+    },
+    preHandler: this.router.auth([verifyToken.bind(self)]),
+    handler(request, reply) {
+      const payload = request.query;
+
+      queue
+        .add(async () => {
+          return await self.inq.request(payload);
+        })
+        .then((res) => reply.send({ result: res }))
+        .catch((e) => reply.code(500).send({ error: e.toString() }));
+    },
+  });
+
+  this.router.route<{
+    Querystring: YouChatGetAppDataPayload;
+    Headers: IHeaders;
+  }>({
+    method: 'GET',
+    url: '/api/appData',
+    schema: {
+      description: 'Get app data by query from YouChat',
+      querystring: {
+        type: 'object',
+        required: ['text', 'appName'],
+        properties: {
+          text: { type: 'string', description: 'Question text' },
+          appName: {
             type: 'string',
+            description: 'App name',
+          },
+          parseApps: {
+            type: 'boolean',
             description:
-              'The response parameter to be returned. After a successful parameter is received, the connection is closed and no new data will come in.',
-            default: null,
+              'Generate result text from apps (like Wikipedia or Weather)?',
+            default: true,
           },
         },
       },
@@ -69,18 +113,62 @@ export async function ycReq(this: HTTPClient) {
           'x-token': { type: 'string', description: 'API key' },
         },
       },
-      // response: {
-      //   200: {}
-      // }
     },
     preHandler: this.router.auth([verifyToken.bind(self)]),
-    async handler(request, reply) {
+    handler(request, reply) {
       const payload = request.query;
-      // console.log(user);
 
-      await queue
+      queue
         .add(async () => {
-          return await self.inq.request(payload);
+          return await self.inq.getAppData(payload);
+        })
+        .then((res) => reply.send({ result: res }))
+        .catch((e) => reply.code(500).send({ error: e.toString() }));
+    },
+  });
+
+  this.router.route<{
+    Querystring: YouChatGetSearchResultsPayload;
+    Headers: IHeaders;
+  }>({
+    method: 'GET',
+    url: '/api/search',
+    schema: {
+      description: 'Get search results by query from YouChat',
+      querystring: {
+        type: 'object',
+        required: ['text'],
+        properties: {
+          text: { type: 'string', description: 'Question text' },
+          searchResCount: {
+            type: 'number',
+            description: 'Search results count',
+            minimum: 0,
+            maximum: 10,
+            default: 1,
+          },
+          safeSearch: {
+            type: 'boolean',
+            description: 'Safe search enabled?',
+            default: false,
+          },
+        },
+      },
+      headers: {
+        type: 'object',
+        required: ['x-token'],
+        properties: {
+          'x-token': { type: 'string', description: 'API key' },
+        },
+      },
+    },
+    preHandler: this.router.auth([verifyToken.bind(self)]),
+    handler(request, reply) {
+      const payload = request.query;
+
+      queue
+        .add(async () => {
+          return await self.inq.getSearchResults(payload);
         })
         .then((res) => reply.send({ result: res }))
         .catch((e) => reply.code(500).send({ error: e.toString() }));

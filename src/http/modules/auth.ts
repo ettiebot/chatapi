@@ -7,22 +7,26 @@ const limiter = new InMemoryRateLimiter({
   maxInInterval: 10,
 });
 
-export default async function verifyToken(this: HTTPClient, request, _, done) {
+export default function verifyToken(this: HTTPClient, request, _, done) {
   const token = request.headers['x-token'] as string;
+
   if (!token) {
     return done(new Error('Missing token'));
   }
 
-  const userObj = await UserService.getByToken(this.db, token);
-  if (!userObj) return done(new Error('Invalid token'));
+  UserService.getByToken(this.db, token)
+    .then((userObj) => {
+      if (!userObj) return done(new Error('Invalid token'));
 
-  request.headers.user = userObj;
+      request.headers.user = userObj;
 
-  await limiter.limit(userObj._id).then((wasBlocked) => {
-    if (wasBlocked) {
-      return done(new Error('Limit exceeded'));
-    } else {
-      return done();
-    }
-  });
+      limiter.limit(userObj._id).then((wasBlocked) => {
+        if (wasBlocked) {
+          return done(new Error('Limit exceeded'));
+        } else {
+          return done();
+        }
+      });
+    })
+    .catch((e) => done(e));
 }
